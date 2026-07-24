@@ -1,0 +1,51 @@
+jenkins:
+  systemMessage: "Jenkins настроен через Configuration as Code"
+
+  numExecutors: 2
+  mode: NORMAL
+
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+  securityRealm:
+    local:
+      allowsSignup: false
+      enableCaptcha: false
+      users:
+        - id: "${JENKINS_ADMIN_ID}"
+          name: "${JENKINS_ADMIN_ID}"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+
+  crumbIssuer: "standard"
+
+  remotingSecurity:
+    enabled: true
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - basicSSHUserPrivateKey:
+              scope: GLOBAL
+              id: "gihub-ssh"
+              description: "Доступ к GitHub"
+              username: "git"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${github_ssh_key}"
+
+security:
+  gitHostKeyVerificationConfiguration:
+    sshHostKeyVerificationStrategy: "acceptFirstConnectionStrategy"
+
+unclassified:
+  location:
+    adminAddress: "${JENKINS_ADMIN_EMAIL}"
+    url: "${JENKINS_URL}"
+
+tool:
+  git:
+    installations:
+      - name: "Default"
+        home: "git"
