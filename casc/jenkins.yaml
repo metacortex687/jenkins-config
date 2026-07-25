@@ -49,3 +49,27 @@ tool:
     installations:
       - name: "Default"
         home: "git"
+
+jobs:
+  - script: |
+      pipelineJob('taxi-manager-ci') {
+        description('CI для проекта taxi-manager. Создан через Job DSL.')
+
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('ssh://git@ssh.github.com:443/metacortex687/taxi-manager.git')
+                  credentials('gihub-ssh')
+                }
+
+                branch('*/main')
+              }
+            }
+
+            scriptPath('Jenkinsfile')
+            lightweight()
+          }
+        }
+      }
