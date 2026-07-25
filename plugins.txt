@@ -5,3 +5,4 @@ ssh-credentials
 docker-workflow
 junit
 job-dsl
+pipeline-graph-view
