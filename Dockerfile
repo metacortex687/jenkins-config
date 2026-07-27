@@ -6,6 +6,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         docker-cli \
         docker-buildx \
+        docker-compose \
     && rm -rf /var/lib/apt/lists/*
 
 USER jenkins
