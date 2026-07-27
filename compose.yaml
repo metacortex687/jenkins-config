@@ -30,7 +30,77 @@ services:
 
     secrets:
       - github_ssh_key
+    networks:
+      - ci
+
+  alloy:
+    image: grafana/alloy:v1.18.0
+    container_name: alloy
+    restart: unless-stopped
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --server.http.listen-addr=0.0.0.0:12345
+    volumes:
+      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
+    networks:
+      - ci
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+      - --storage.tsdb.retention.size=10GB
+      - --web.enable-remote-write-receiver
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    networks:
+      - ci
+
+  tempo:
+    image: grafana/tempo:2.10.1
+    container_name: tempo
+    restart: unless-stopped
+    user: "0:0"
+    command:
+      - -config.file=/etc/tempo/tempo.yml
+    volumes:
+      - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
+      - tempo_data:/var/tempo
+    networks:
+      - ci
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: "${GRAFANA_ADMIN_PASSWORD:-admin}"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - ci
 
 secrets:
   github_ssh_key:
     file: ./secrets/github_ssh_key
+
+networks:
+  ci:
+    name: jenkins-ci
+
+volumes:
+  prometheus_data:
+  tempo_data:
+  grafana_data:
