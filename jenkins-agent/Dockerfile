@@ -25,4 +25,6 @@ RUN set -eu; \
         docker_group=docker-host; \
         groupadd --gid "${DOCKER_GID}" "${docker_group}"; \
     fi; \
-    usermod --append --groups "${docker_group}" jenkins
+    usermod --append --groups "${docker_group}" jenkins; \
+    mkdir -p /home/jenkins/agent; \
+    chown jenkins:jenkins /home/jenkins/agent
