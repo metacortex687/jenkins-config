@@ -19,7 +19,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: jenkins_agent
+        working-directory: jenkins-agent
 
     steps:
       - name: Checkout
