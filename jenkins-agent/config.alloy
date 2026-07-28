@@ -1,0 +1,69 @@
+otelcol.receiver.otlp "ci" {
+  grpc {
+    endpoint = "0.0.0.0:4317"
+  }
+
+  output {
+    traces = [otelcol.processor.batch.ci.input]
+  }
+}
+
+otelcol.processor.batch "ci" {
+  output {
+    traces = [
+      otelcol.connector.spanmetrics.ci.input,
+      otelcol.exporter.otlp.tempo.input,
+    ]
+  }
+}
+
+otelcol.connector.spanmetrics "ci" {
+  namespace              = "traces.spanmetrics"
+  metrics_flush_interval = "5s"
+  metrics_expiration     = "5m"
+
+  dimension {
+    name = "build"
+  }
+
+  dimension {
+    name = "suite"
+  }
+
+  dimension {
+    name = "http.route"
+  }
+
+  histogram {
+    unit = "s"
+    explicit {}
+  }
+
+  output {
+    metrics = [otelcol.exporter.prometheus.ci.input]
+  }
+}
+
+otelcol.exporter.prometheus "ci" {
+  forward_to = [prometheus.remote_write.master.receiver]
+}
+
+prometheus.remote_write "master" {
+  external_labels = {
+    job = "taxi-manager-ci",
+  }
+
+  endpoint {
+    url = sys.env("PROMETHEUS_REMOTE_WRITE_URL")
+  }
+}
+
+otelcol.exporter.otlp "tempo" {
+  client {
+    endpoint = sys.env("TEMPO_OTLP_ENDPOINT")
+
+    tls {
+      insecure = true
+    }
+  }
+}

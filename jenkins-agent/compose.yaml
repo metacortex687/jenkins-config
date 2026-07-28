@@ -1,0 +1,61 @@
+name: jenkins-agent
+
+services:
+  jenkins-agent:
+    build:
+      context: .
+      args:
+        DOCKER_GID: "${DOCKER_GID}"
+
+    image: jenkins-ssh-agent-docker:jdk21
+    container_name: jenkins-agent
+    init: true
+    restart: unless-stopped
+
+    ports:
+      - "2222:22"
+
+    environment:
+      JENKINS_AGENT_SSH_PUBKEY: "${JENKINS_MASTER_PUBLIC_KEY}"
+
+    volumes:
+      - /home/jenkins/agent:/home/jenkins/agent
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ssh_config:/etc/ssh
+
+    networks:
+      - ci
+
+  alloy:
+    image: grafana/alloy:v1.18.0
+    container_name: alloy
+    restart: unless-stopped
+
+    command:
+      - run
+      - /etc/alloy/config.alloy
+      - --storage.path=/var/lib/alloy/data
+      - --server.http.listen-addr=0.0.0.0:12345
+
+    environment:
+      TEMPO_OTLP_ENDPOINT: "${TEMPO_OTLP_ENDPOINT}"
+
+    volumes:
+      - ./config.alloy:/etc/alloy/config.alloy:ro
+      - alloy_data:/var/lib/alloy/data
+
+    expose:
+      - "4317"
+      - "4318"
+
+    networks:
+      - ci
+
+networks:
+  ci:
+    external: true
+    name: jenkins-ci
+
+volumes:
+  alloy_data:
+  ssh_config:

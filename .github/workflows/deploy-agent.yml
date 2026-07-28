@@ -1,0 +1,111 @@
+name: Deploy Jenkins agent
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: jenkins-agent-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Create environment file
+        env:
+          JENKINS_MASTER_PUBLIC_KEY: ${{ secrets.JENKINS_MASTER_PUBLIC_KEY }}
+          TEMPO_OTLP_ENDPOINT: ${{ secrets.TEMPO_OTLP_ENDPOINT }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${JENKINS_MASTER_PUBLIC_KEY:?Secret JENKINS_MASTER_PUBLIC_KEY is not set}"
+          : "${TEMPO_OTLP_ENDPOINT:?Secret TEMPO_OTLP_ENDPOINT is not set}"
+
+          umask 077
+          {
+            printf 'JENKINS_MASTER_PUBLIC_KEY=%s\n' "$JENKINS_MASTER_PUBLIC_KEY"
+            printf 'TEMPO_OTLP_ENDPOINT=%s\n' "$TEMPO_OTLP_ENDPOINT"
+          } > .env
+
+          DOCKER_GID=0 docker compose config --quiet
+
+      - name: Configure SSH
+        env:
+          AGENT_CLOUD_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.AGENT_CLOUD_DEPLOY_SSH_PRIVATE_KEY }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${AGENT_CLOUD_DEPLOY_SSH_PRIVATE_KEY:?Secret AGENT_CLOUD_DEPLOY_SSH_PRIVATE_KEY is not set}"
+
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$AGENT_CLOUD_DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/deploy_key"
+          chmod 600 "$HOME/.ssh/deploy_key"
+
+      - name: Deploy
+        env:
+          AGENT_CLOUD_HOST: ${{ secrets.AGENT_CLOUD_HOST }}
+          AGENT_CLOUD_USER: ${{ secrets.AGENT_CLOUD_USER }}
+        run: |
+          set -Eeuo pipefail
+
+          : "${AGENT_CLOUD_HOST:?Secret AGENT_CLOUD_HOST is not set}"
+          : "${AGENT_CLOUD_USER:?Secret AGENT_CLOUD_USER is not set}"
+
+          archive="$RUNNER_TEMP/jenkins-agent.tar.gz"
+          target="${AGENT_CLOUD_USER}@${AGENT_CLOUD_HOST}"
+          ssh_options=(
+            -i "$HOME/.ssh/deploy_key"
+            -o BatchMode=yes
+            -o IdentitiesOnly=yes
+            -o StrictHostKeyChecking=no
+            -o UserKnownHostsFile=/dev/null
+          )
+
+          tar \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            -czf "$archive" .
+
+          ssh "${ssh_options[@]}" "$target" \
+            'mkdir -p "$HOME/jenkins-agent"'
+
+          scp "${ssh_options[@]}" "$archive" \
+            "$target:jenkins-agent.tar.gz"
+
+          ssh "${ssh_options[@]}" "$target" 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+
+          deploy_dir="$HOME/jenkins-agent"
+
+          tar -xzf "$HOME/jenkins-agent.tar.gz" -C "$deploy_dir"
+          rm -f "$HOME/jenkins-agent.tar.gz"
+
+          cd "$deploy_dir"
+
+          if [ ! -S /var/run/docker.sock ]; then
+            echo "Docker socket /var/run/docker.sock not found" >&2
+            exit 1
+          fi
+
+          docker_gid="$(stat -c '%g' /var/run/docker.sock)"
+          printf 'DOCKER_GID=%s\n' "$docker_gid" >> .env
+          chmod 600 .env
+
+          docker network inspect jenkins-ci >/dev/null 2>&1 ||
+            docker network create jenkins-ci
+
+          docker compose up -d --build --remove-orphans --wait
+          docker compose ps
+          REMOTE
