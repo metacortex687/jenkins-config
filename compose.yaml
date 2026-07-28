@@ -23,28 +23,9 @@ services:
     volumes:
       - ./jenkins_home:/var/jenkins_home
       - ./casc:/var/jenkins_casc:ro
-      - /var/run/docker.sock:/var/run/docker.sock
-
-    group_add:
-      - "${DOCKER_GID}"
 
     secrets:
       - github_ssh_key
-    networks:
-      - ci
-
-  alloy:
-    image: grafana/alloy:v1.18.0
-    container_name: alloy
-    restart: unless-stopped
-    command:
-      - run
-      - /etc/alloy/config.alloy
-      - --server.http.listen-addr=0.0.0.0:12345
-    volumes:
-      - ./observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
-    networks:
-      - ci
 
   prometheus:
     image: prom/prometheus:latest
@@ -60,8 +41,6 @@ services:
       - "127.0.0.1:9090:9090"
     volumes:
       - prometheus_data:/prometheus
-    networks:
-      - ci
 
   tempo:
     image: grafana/tempo:2.10.1
@@ -73,8 +52,6 @@ services:
     volumes:
       - ./observability/tempo/tempo.yml:/etc/tempo/tempo.yml:ro
       - tempo_data:/var/tempo
-    networks:
-      - ci
 
   grafana:
     image: grafana/grafana:latest
@@ -89,16 +66,10 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-    networks:
-      - ci
 
 secrets:
   github_ssh_key:
     file: ./secrets/github_ssh_key
-
-networks:
-  ci:
-    name: jenkins-ci
 
 volumes:
   prometheus_data:
