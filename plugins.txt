@@ -6,3 +6,4 @@ docker-workflow
 junit
 job-dsl
 pipeline-graph-view
+ssh-slaves
