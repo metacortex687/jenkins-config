@@ -18,7 +18,6 @@ services:
       JENKINS_ADMIN_PASSWORD: "${JENKINS_ADMIN_PASSWORD}"
       JENKINS_ADMIN_EMAIL: "${JENKINS_ADMIN_EMAIL}"
 
-      JENKINS_URL: "http://127.0.0.1:${JENKINS_PORT}/"
 
     volumes:
       - ./jenkins_home:/var/jenkins_home
