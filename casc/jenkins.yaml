@@ -5,6 +5,20 @@ jenkins:
   mode: NORMAL
   labelString: "master"
 
+  nodes:
+    - permanent:
+        name: "dev-cloud"
+        remoteFS: "/home/jenkins/agent"
+        mode: EXCLUSIVE
+        labelString: "slave"
+        retentionStrategy: "always"
+        launcher:
+          ssh:
+            host: "194.113.34.197"
+            port: 2222
+            credentialsId: "jenkins-agent-ssh-key"
+            sshHostKeyVerificationStrategy: "nonVerifyingKeyVerificationStrategy"
+
   authorizationStrategy:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
