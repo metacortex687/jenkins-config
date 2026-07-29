@@ -50,6 +50,15 @@ credentials:
                 directEntry:
                   privateKey: "${github_ssh_key}"
 
+          - basicSSHUserPrivateKey:
+              scope: SYSTEM
+              id: "jenkins-agent-ssh-key"
+              description: "SSH-доступ к Jenkins Agent"
+              username: "jenkins"
+              privateKeySource:
+                directEntry:
+                  privateKey: "${jenkins_agent_ssh_key}"
+
 security:
   gitHostKeyVerificationConfiguration:
     sshHostKeyVerificationStrategy: "acceptFirstConnectionStrategy"

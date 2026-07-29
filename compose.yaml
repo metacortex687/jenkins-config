@@ -25,6 +25,7 @@ services:
 
     secrets:
       - github_ssh_key
+      - jenkins_agent_ssh_key
 
   prometheus:
     image: prom/prometheus:latest
@@ -72,6 +73,9 @@ services:
 secrets:
   github_ssh_key:
     file: ./secrets/github_ssh_key
+
+  jenkins_agent_ssh_key:
+    file: ./secrets/jenkins_agent_ssh_key
 
 volumes:
   prometheus_data:
