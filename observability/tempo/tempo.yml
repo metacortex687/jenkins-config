@@ -3,6 +3,9 @@ stream_over_http_enabled: true
 server:
   http_listen_port: 3200
 
+query_frontend:
+  search:
+    max_duration: 720h
 distributor:
   receivers:
     otlp:
