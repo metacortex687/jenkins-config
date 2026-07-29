@@ -3,6 +3,7 @@ jenkins:
 
   numExecutors: 1
   mode: NORMAL
+  labelString: "master"
 
   authorizationStrategy:
     loggedInUsersCanDoAnything:
