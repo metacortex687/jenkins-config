@@ -6,6 +6,9 @@ server:
 query_frontend:
   search:
     max_duration: 720h
+  metrics:
+    max_duration: 720h
+    
 distributor:
   receivers:
     otlp:
